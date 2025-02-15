@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+{% block content %}
+<form action="" method="post" enctype="multipart/form-data"> 
+    {% csrf_token %}
+    {{form.as_p}}
+    <button type="submit">Create post</button>
+
+    <!-- <p>
+       <input name="image" type="file"> 
+    </p>
+    <label for="title">Title</label>
+    <p>
+        <input name="title" type="text">
+    </p>
+    <label for="content">Content</label>
+    <p>
+        <input name="content" type="text">  
+    </p>
+    <button type="submit">Create post</button>
+</form> -->
+{% endblock %}

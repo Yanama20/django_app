@@ -7,6 +7,7 @@ from django.db import models
 
 несколько объкетов по условию --- Post.objects.filter(title='title')
 
+создание объектов - Post.objects.create(title='***', content='***')
 '''
 
 class Category(models.Model):
