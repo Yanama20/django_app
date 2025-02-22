@@ -1,5 +1,7 @@
 from django import forms
 
+from posts.models import Category, Tag
+
 
 class PostCreateForm(forms.Form):
     image = forms.ImageField()
@@ -19,3 +21,31 @@ class PostCreateForm(forms.Form):
         if title and title.lower() == "python":
             raise forms.ValidationError(message="'Python' is not allowed value for title")
         return title
+    
+class SearchForm(forms.Form):
+    search = forms.CharField(
+        max_length=100, 
+        required=False, 
+        widget=forms.TextInput(attrs={'placeholder': 'Поиск'})
+    )
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.all(),
+        required=False
+    )
+    tags = forms.ModelMultipleChoiceField(
+        queryset=Tag.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+    )
+    orderings = (
+        ('title', 'По заголовку'),
+        ('-title', 'По заголовку в обратном порядке'),
+        ('rate', 'По рейтингу'),
+        ('-rate', 'По рейтингу в обратном порядке'),
+        ('created_at', 'По дате создания'),
+        ('-created_at', 'По дате создания в обратном порядке'),
+    )
+    ordering = forms.ChoiceField(
+        choices=orderings, 
+        widget=forms.Select(attrs={'class':'form-control'})
+    )
+
