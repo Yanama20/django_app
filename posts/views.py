@@ -1,19 +1,25 @@
 from django.shortcuts import render, HttpResponse, redirect
 import random
-
 from posts.models import Post
-
-from posts.forms import PostCreateForm, SearchForm
+from posts.forms import PostCreateForm, PostUpdateForm, SearchForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.views import View
+from django.views.generic import ListView, CreateView, DetailView, UpdateView
 
 
-def test_view(requset):
+def test_view(request):
     return HttpResponse(f'Hello world! {random.randint(1, 100)}')
 
 def html_view(request):
-    return render(request, 'main.html')\
-    
+    if request.method == 'GET':
+        return render(request, 'main.html')
+    else:
+        return None
+
+class TestView(View):
+    def get(self, request):
+        return HttpResponse(f'Hello world! {random.randint(1, 100)}')    
 
 @login_required(login_url='/login/')
 def post_list_view(request):
@@ -55,13 +61,46 @@ def post_list_view(request):
 
         return render(request, 'posts/post_list.html', context=context_data)
 
+class PostListView(ListView):
+    model = Post
+    template_name = 'posts/post_list.html'
+    context_object_name = 'posts'
+    def get_queryset(self):
+        query_params = self.request.GET
+        queryset = Post.objects.all()
 
+        category_id = query_params.get('category')
+        tags = query_params.getlist('tags')
+        ordering = query_params.get('ordering')
+
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+
+        if tags:
+            tags = [int(tag) for tag in tags] 
+            queryset = queryset.filter(tags__id__in=tags)
+
+        if ordering:
+            queryset = queryset.order_by(ordering)
+
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = SearchForm()
+        return context
 
 @login_required(login_url='/login/')
 def post_detail_view(request, post_id):
     if request.method == 'GET':
         post = Post.objects.get(id = post_id)
         return render(request, 'posts/post_detail.html', context={'post':post})
+    
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'posts/post_detail.html'
+    context_object_name = 'post'
+    pk_url_kwarg = 'post_id'
 
 
 @login_required(login_url='/login/')
@@ -87,4 +126,38 @@ def post_create_view(request):
             return redirect('/posts/')
         else:
             return HttpResponse('Пост не был создан.')
+    
+class PostCreateView(CreateView):
+    model = Post
+    success_url = '/posts/'
+    template_name = 'posts/post_create.html'
+    form_class = PostUpdateForm
+
         
+@login_required(login_url='/login/')
+def post_update_view(request, post_id):
+    try:
+        post = Post.objects.get(id = post_id)
+    except Post.DoesNotExist:
+        return HttpResponse("Post не найден.")
+    if request.method == "GET":
+        form = PostUpdateForm(instance=post)
+        return render(request, 'posts/post_update.html', context={'form': form})
+    if request.method == "POST":
+        form = PostUpdateForm(request.POST, request.FILES, instance=post)
+        if not form.is_valid():
+            return render(request, 'posts/post_update.html', context={'form': form})
+        elif form.is_valid():
+            form.save()
+            return redirect('/profile/')
+        else:
+            return HttpResponse('Post не был обновлён')
+
+
+class PostUpdateView(UpdateView):
+    model = Post
+    success_url = '/profile/'
+    template_name = 'posts/post_update.html'
+    form_class = PostUpdateForm
+    pk_url_kwarg = 'post_id'
+
